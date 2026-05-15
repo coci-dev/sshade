@@ -1,6 +1,6 @@
 <div align="center">
 
-# sshade
+<img src="docs/wordmark.png" alt="sshade" width="340" />
 
 **SSH terminal with an AI assistant that actually sees your session.**
 
