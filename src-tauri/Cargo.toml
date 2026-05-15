@@ -1,6 +1,6 @@
 [package]
 name = "sshade"
-version = "0.1.0"
+version = "0.1.2"
 description = "SSH terminal with AI integration"
 authors = ["sshade contributors"]
 edition = "2021"
