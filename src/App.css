@@ -1762,6 +1762,42 @@ body,
   background: var(--border-strong);
 }
 
+/* Push Ask / Run task to the right; auto-approve toggle stays left. */
+.ai-actions-spacer {
+  flex: 1 1 auto;
+}
+
+/* The auto-approve toggle must keep its quiet look, not the generic
+   accent-button style of .ai-input-actions button. */
+.ai-input-actions .agent-auto-toggle {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-default);
+  padding: 4px 9px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.ai-input-actions .agent-auto-toggle:hover:not(:disabled) {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: var(--border-strong);
+}
+.ai-input-actions .agent-auto-toggle.on {
+  background: var(--accent-bg-tint);
+  color: var(--accent);
+  border-color: transparent;
+}
+
+/* Run task = the agent action; visually distinct from the plain Ask. */
+.ai-input-actions .run-block {
+  background: var(--accent);
+  color: var(--accent-fg);
+  border: 0;
+}
+.ai-input-actions .run-block:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
 .ai-config-prompt {
   background: var(--accent-bg-tint);
   border: 1px solid var(--accent-bg-tint-strong);

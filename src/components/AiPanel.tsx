@@ -155,7 +155,6 @@ export function AiPanel({
 }: AiPanelProps) {
   const abortMap = useRef<Map<string, AbortController>>(new Map());
   const conversationRef = useRef<HTMLDivElement>(null);
-  const [agentMode, setAgentMode] = useState(false);
   const [autoApproveSafe, setAutoApproveSafe] = useState<boolean>(
     () => localStorage.getItem("sshade.agent.autoApproveSafe") === "1",
   );
@@ -184,12 +183,6 @@ export function AiPanel({
     );
   }, [autoApproveSafe]);
 
-  // Agent mode is a deliberate per-task action, not a sticky global.
-  // Drop it whenever the active server/chat changes so a concrete
-  // question on the next tab isn't silently treated as an agent goal.
-  useEffect(() => {
-    setAgentMode(false);
-  }, [chatKey]);
 
   const ready = hasUsableProvider();
   const active = getActiveConfig();
@@ -434,17 +427,25 @@ export function AiPanel({
     }
   }
 
-  async function send() {
+  /** Run the input as an agent task (multi-step, executes commands). */
+  async function runTask() {
     if (!input.trim() || pending) return;
     if (!active) {
       onOpenSettings();
       return;
     }
+    // UI also disables the button in these cases; guard anyway.
+    if (readOnly || !activeSessionId) return;
+    const goal = input.trim();
+    setInput("");
+    await sendAgent(goal);
+  }
 
-    if (agentMode) {
-      const goal = input.trim();
-      setInput("");
-      await sendAgent(goal);
+  /** Answer the input as a concrete question (no command execution). */
+  async function ask() {
+    if (!input.trim() || pending) return;
+    if (!active) {
+      onOpenSettings();
       return;
     }
 
@@ -497,10 +498,18 @@ export function AiPanel({
     abortMap.current.get(chatKey)?.abort();
   }
 
+  const canRunTask = !!activeSessionId && !readOnly;
+
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key !== "Enter" || e.shiftKey) return;
+    if (e.metaKey || e.ctrlKey) {
+      // ⌘/Ctrl+Enter = run as a task (explicit, never accidental).
       e.preventDefault();
-      send();
+      if (canRunTask) runTask();
+    } else {
+      // Plain Enter = ask. The safe default for a concrete question.
+      e.preventDefault();
+      ask();
     }
   }
 
@@ -514,21 +523,6 @@ export function AiPanel({
           <span className="ai-model" title={active ? active.config.model : ""}>
             {headerLabel}
           </span>
-          <button
-            className={agentMode ? "icon-btn agent-on" : "icon-btn"}
-            onClick={() => !readOnly && setAgentMode((v) => !v)}
-            disabled={readOnly || pending}
-            title={
-              readOnly
-                ? "Disable read-only to use the agent"
-                : agentMode
-                  ? "Agent mode ON — describe a goal, it runs commands step by step (you approve each). Click to turn off."
-                  : "Agent mode OFF — turn on to let the AI execute a multi-step task with your approval."
-            }
-            aria-label="Toggle agent mode"
-          >
-            <Bot size={15} strokeWidth={1.75} />
-          </button>
           <button
             className={readOnly ? "icon-btn readonly-on" : "icon-btn"}
             onClick={onToggleReadOnly}
@@ -755,38 +749,11 @@ export function AiPanel({
             Configure an AI provider to enable the assistant →
           </button>
         )}
-        {agentMode && !pendingApproval && (
-          <div className="agent-hint">
-            <div className="agent-hint-text">
-              <Bot size={12} strokeWidth={1.75} />
-              {autoApproveSafe
-                ? "Agent mode — read-only commands run automatically; anything that writes still asks."
-                : 'Agent mode — describe a goal (e.g. "why is nginx down?"). You approve every command.'}
-            </div>
-            <button
-              type="button"
-              className={
-                autoApproveSafe
-                  ? "agent-auto-toggle on"
-                  : "agent-auto-toggle"
-              }
-              onClick={() => setAutoApproveSafe((v) => !v)}
-              title="Auto-approve provably read-only commands (ls, cat, ps…). Mutating commands always ask."
-            >
-              <Zap size={11} strokeWidth={2} />
-              Auto-approve safe
-            </button>
-          </div>
-        )}
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder={
-            agentMode
-              ? "Describe a goal for the agent…"
-              : "Pregunta…  (Enter to send, Shift+Enter for new line)"
-          }
+          placeholder="Ask a question, or describe a task to run…  (Enter = Ask · Shift+Enter = newline)"
           rows={2}
           disabled={pending}
         />
@@ -796,9 +763,47 @@ export function AiPanel({
               Stop
             </button>
           ) : (
-            <button onClick={send} disabled={!input.trim()}>
-              Send
-            </button>
+            <>
+              <button
+                type="button"
+                className={
+                  autoApproveSafe
+                    ? "agent-auto-toggle on"
+                    : "agent-auto-toggle"
+                }
+                onClick={() => setAutoApproveSafe((v) => !v)}
+                title="When you Run a task: auto-approve provably read-only commands (ls, cat, ps…). Anything that writes still asks."
+              >
+                <Zap size={11} strokeWidth={2} />
+                Auto-approve safe
+              </button>
+              <span className="ai-actions-spacer" />
+              <button
+                type="button"
+                className="secondary"
+                onClick={ask}
+                disabled={!input.trim()}
+                title="Answer as a concrete question — no commands are run"
+              >
+                Ask
+              </button>
+              <button
+                type="button"
+                className="run-block"
+                onClick={runTask}
+                disabled={!input.trim() || !canRunTask}
+                title={
+                  !activeSessionId
+                    ? "Connect to a server first — a task runs commands there"
+                    : readOnly
+                      ? "Read-only is ON — disable it to let a task run commands"
+                      : "Run as a task: the AI plans and executes commands step by step (you approve each). ⌘/Ctrl+Enter"
+                }
+              >
+                <Bot size={13} strokeWidth={1.9} />
+                Run task
+              </button>
+            </>
           )}
         </div>
       </div>
