@@ -127,6 +127,15 @@ async fn ssh_disconnect(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // WebKitGTK 2.40+ defaults to a DMABUF/GBM GPU renderer that fails on
+    // VMs, headless, remote sessions, or where the user lacks /dev/dri
+    // access ("Failed to create GBM buffer" → blank/no window). Forcing
+    // the software path here makes the window reliably open everywhere;
+    // negligible cost for a terminal UI. Must be set before WebKitGTK
+    // initializes. Linux-only (no-op/irrelevant on Windows/macOS).
+    #[cfg(target_os = "linux")]
+    std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
