@@ -67,9 +67,13 @@ export function buildSentinel(
         re,
       };
     default:
-      // POSIX: one line; `$?` right after `;` is <command>'s status.
+      // POSIX: two lines, NOT `<cmd>; printf …`. Concatenating with `;`
+      // breaks whenever the command ends in `;` (→ `;;` syntax error),
+      // `&`, or a `#comment` (swallows the printf). As its own submitted
+      // line, `$?` still reflects <command>'s exit and any trailing
+      // separator/comment is harmless.
       return {
-        lines: [`${command}; printf '\\n${tag}%s__\\n' "$?"`],
+        lines: [command, `printf '\\n${tag}%s__\\n' "$?"`],
         re,
       };
   }
