@@ -101,7 +101,10 @@ export function AuditModal({ profileId, onClose }: AuditModalProps) {
         <p className="hint audit-sub">
           Commands the assistant executed on this server — agent steps and
           Run / Paste from the chat. Commands you typed in the terminal
-          yourself are <strong>not</strong> recorded here.
+          yourself are <strong>not</strong> recorded here. Stored locally on
+          this machine; output is redacted best-effort but may still contain
+          sensitive data (e.g. credentials a command prints). Use{" "}
+          <strong>Clear log</strong> to wipe it.
         </p>
 
         <div className="audit-list">
