@@ -184,6 +184,13 @@ export function AiPanel({
     );
   }, [autoApproveSafe]);
 
+  // Agent mode is a deliberate per-task action, not a sticky global.
+  // Drop it whenever the active server/chat changes so a concrete
+  // question on the next tab isn't silently treated as an agent goal.
+  useEffect(() => {
+    setAgentMode(false);
+  }, [chatKey]);
+
   const ready = hasUsableProvider();
   const active = getActiveConfig();
 
