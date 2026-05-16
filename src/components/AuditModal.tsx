@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { Bot, ClipboardPaste, Terminal, Trash2, X } from "lucide-react";
+import {
+  Bot,
+  ClipboardPaste,
+  RefreshCw,
+  Terminal,
+  Trash2,
+  X,
+} from "lucide-react";
 import {
   type AuditEntry,
   type AuditSource,
@@ -48,8 +55,13 @@ export function AuditModal({ profileId, onClose }: AuditModalProps) {
       .catch(() => setEntries([]));
   }, [profileId]);
 
+  // Fetch on open AND keep polling: audit writes are fire-and-forget, so
+  // a one-shot fetch goes stale the moment the agent / Run / Paste logs
+  // another command. Poll while the modal is open so it stays live.
   useEffect(() => {
     refresh();
+    const id = window.setInterval(refresh, 2000);
+    return () => window.clearInterval(id);
   }, [refresh]);
 
   function handleClear() {
@@ -65,14 +77,31 @@ export function AuditModal({ profileId, onClose }: AuditModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <header className="modal-header">
-          <h2>Activity log</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
-            <X size={15} strokeWidth={1.75} />
-          </button>
+          <h2>
+            AI activity log
+            {entries && entries.length > 0 && (
+              <span className="audit-count">{entries.length}</span>
+            )}
+          </h2>
+          <div className="audit-header-actions">
+            <button
+              className="icon-btn"
+              onClick={refresh}
+              title="Refresh"
+              aria-label="Refresh"
+            >
+              <RefreshCw size={14} strokeWidth={1.75} />
+            </button>
+            <button className="icon-btn" onClick={onClose} aria-label="Close">
+              <X size={15} strokeWidth={1.75} />
+            </button>
+          </div>
         </header>
 
         <p className="hint audit-sub">
-          Every command sshade ran on this server on your behalf.
+          Commands the assistant executed on this server — agent steps and
+          Run / Paste from the chat. Commands you typed in the terminal
+          yourself are <strong>not</strong> recorded here.
         </p>
 
         <div className="audit-list">
@@ -80,7 +109,8 @@ export function AuditModal({ profileId, onClose }: AuditModalProps) {
             <p className="audit-empty">Loading…</p>
           ) : entries.length === 0 ? (
             <p className="audit-empty">
-              Nothing yet — no commands have been run here.
+              Nothing yet — the assistant hasn't run any commands on this
+              server (agent / Run / Paste).
             </p>
           ) : (
             entries.map((e) => {

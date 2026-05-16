@@ -2722,6 +2722,20 @@ body,
   margin: -4px 0 0;
 }
 
+.audit-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.audit-count {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .audit-list {
   flex: 1;
   overflow: auto;
